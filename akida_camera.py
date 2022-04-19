@@ -5,7 +5,6 @@ import threading
 from imutils.video import VideoStream
 from tensorflow.keras.preprocessing.image import img_to_array
 import numpy as np
-# from pynput import keyboard
 
 from akida_models import akidanet_edge_imagenet_pretrained
 from cnn2snn import convert
@@ -16,7 +15,7 @@ import cv2
 
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
-# CAMERA_SRC = 0
+# RTSP remote webcam address (set to 0 to use local webcam)
 CAMERA_SRC = 'rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4'
 
 INFERENCE_PER_SECOND = 1

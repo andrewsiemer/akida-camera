@@ -28,21 +28,11 @@ STDP  is  possible  because  of  the  event-based processing method used by the 
 
 ### Running and using the app
 
-1. run `python3 akida_camera.py`
-2. Press `1` to `0` on your keyboard to learn a new class
-3. Press `s` to save the newly learnt classes into your model
+1. To start the server run `python3 akida_camera.py`
+2. In the console output you should see something similar to `* Running on http://127.0.0.1:5000`, navigate to the URL in your browser to see the app
+3. To learning classes put the object in frame then type the class name and click `Add` (Be defualt, you can add up to 10 unique classes)
+4. To kill the server use `pkill -9 python`
 
-
-### Customise the labels
-
-1. Edit the dict `LABELS = {0: "Background"}`
-2. Add as many labels as required, ensure there are enough classes available in the model `NUM_CLASSES = 10`
-
-
-### Record a demonstration
-
-1. Change the output setting `OUTPUT = True`
-2. Enter a filename if required, defaults to `out.avi`
 > **Important:** Remember to contact `sales@brainchipinc.com` to seek permission before publishing any demonstration videos
 
 
