@@ -5,12 +5,14 @@ import threading
 from imutils.video import VideoStream
 from tensorflow.keras.preprocessing.image import img_to_array
 import numpy as np
-from pynput import keyboard
+# from pynput import keyboard
 
 from akida_models import akidanet_edge_imagenet_pretrained
 from cnn2snn import convert
 from akida import Model, FullyConnected, devices
 
+from flask import Flask, render_template, Response
+import cv2
 
 OUTPUT = False
 OUTPUT_VID = "out.avi"
@@ -18,7 +20,9 @@ OUTPUT_FPS = 30
 
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
-CAMERA_SRC = 0
+# CAMERA_SRC = 0
+CAMERA_SRC = 'rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4'
+
 INFERENCE_PER_SECOND = 1
 
 TEXT_COLOUR = (190, 30, 255)
@@ -41,36 +45,65 @@ SAVED = []
 SHOTS = {}
 
 
-class Controls:
+##################################################
+# Web App
+##################################################
+
+app = Flask(__name__)
+
+@app.route('/video_feed')
+def video_feed():
 
     """
-    Class to capture key presses to save/learn
+    Video streaming route.
     """
 
-    def __init__(self, inference):
-        self.listener = keyboard.Listener(
-            on_press=self.on_press, on_release=self.on_release
-        )
-        self.listener.start()
-        self.inference = inference
+    # Put this in the src attribute of an img tag
+    return Response(camera.show_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    def on_press(self, key):
-        try:
+@app.route('/')
+def index():
 
-            if key.char in NEURON_KEYS:
-                print("learned class {}".format(int(key.char)))
-                self.inference.learn(int(key.char))
+    """
+    Video streaming home page.
+    """
 
-            if key.char == SAVE_BUTTON:
-                print("saved model to {}".format(MODEL_FBZ))
-                self.inference.save()
+    return render_template('index.html')
 
-        except AttributeError:
-            pass
+##################################################
+# Akida Demo
+##################################################
 
-    def on_release(self, key):
-        if key == keyboard.Key.esc:
-            return False
+# class Controls:
+
+#     """
+#     Class to capture key presses to save/learn
+#     """
+
+#     def __init__(self, inference):
+#         self.listener = keyboard.Listener(
+#             on_press=self.on_press, on_release=self.on_release
+#         )
+#         self.listener.start()
+#         self.inference = inference
+
+#     def on_press(self, key):
+#         try:
+
+#             if key.char in NEURON_KEYS:
+#                 print("learned class {}".format(int(key.char)))
+#                 self.inference.learn(int(key.char))
+
+#             if key.char == SAVE_BUTTON:
+#                 print("saved model to {}".format(MODEL_FBZ))
+#                 self.inference.save()
+
+#         except AttributeError:
+#             pass
+
+#     def on_release(self, key):
+#         if key == keyboard.Key.esc:
+#             return False
 
 
 class Camera:
@@ -105,11 +138,14 @@ class Camera:
         return input_array
 
     def show_frame(self):
-        frame = self.label_frame(self.stream.read())
-        if OUTPUT:
-            self.out.write(frame)
-        cv2.imshow("frame", frame)
-        key = cv2.waitKey(20) & 0xFF
+        while True:
+            frame = self.label_frame(self.stream.read())
+            if OUTPUT:
+                self.out.write(frame)
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
 
     def label_frame(self, frame):
         frame = cv2.putText(
@@ -214,8 +250,8 @@ class Inference:
 
 camera = Camera()
 inference = Inference(camera)
-controls = Controls(inference)
+# controls = Controls(inference)
 
 
-while True:
-    camera.show_frame()
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
