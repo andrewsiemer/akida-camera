@@ -2,6 +2,7 @@
 
 This is an extremely basic way to utilise the Akida on-chip learning functionality. The demo will let you learn new classes of objects to recognise in the camera feed. This application is built to soley demonstrate how easy it is to use Akida's unique one-shot/few shot learning abilities.
 
+![Preview](https://i.ibb.co/Nyyxpd8/Screen-Shot-2022-04-19-at-2-52-39-PM.png)
 
 ## How Does Akida Learn?
 
