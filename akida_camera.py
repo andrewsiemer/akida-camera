@@ -14,10 +14,6 @@ from akida import Model, FullyConnected, devices
 from flask import Flask, render_template, Response, request
 import cv2
 
-OUTPUT = False
-OUTPUT_VID = "out.avi"
-OUTPUT_FPS = 30
-
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
 # CAMERA_SRC = 0
@@ -75,9 +71,12 @@ def index():
         # getting input with in HTML form
         class_name = str(request.form.get("cname"))
         if (class_name != ''):
-            LABELS.update({len(LABELS):class_name})
+            if (get_key(class_name) == -1):
+                # add new class
+                LABELS.update({len(LABELS):class_name})
+            # learn class
             inference.learn(get_key(class_name))
-            print("Learned Class: " + class_name + ".")
+            print("Learned Class: {}.".format(class_name))
     
     return render_template('index.html')
 
@@ -98,13 +97,6 @@ class Camera:
         self.label = ""
         self.shots = ""
         self.text_display_timer = 0
-        if OUTPUT:
-            self.out = cv2.VideoWriter(
-                OUTPUT_VID,
-                cv2.VideoWriter_fourcc(*"XVID"),
-                OUTPUT_FPS,
-                (FRAME_WIDTH, FRAME_HEIGHT),
-            )
 
     def get_frame(self):
         frame = cv2.resize(self.stream.read(), (TARGET_WIDTH, TARGET_HEIGHT))
@@ -119,8 +111,6 @@ class Camera:
     def show_frame(self):
         while True:
             frame = self.label_frame(self.stream.read())
-            if OUTPUT:
-                self.out.write(frame)
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
@@ -130,7 +120,7 @@ class Camera:
         frame = cv2.putText(
             frame,
             str(self.label),
-            (10, 40),
+            (5, 25),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
             TEXT_COLOR,
@@ -140,7 +130,7 @@ class Camera:
         frame = cv2.putText(
             frame,
             str(self.shots),
-            (10, 75),
+            (5, 50),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             TEXT_COLOR,
@@ -229,7 +219,6 @@ class Inference:
 
 camera = Camera()
 inference = Inference(camera)
-# controls = Controls(inference)
 
 
 if __name__ == '__main__':
