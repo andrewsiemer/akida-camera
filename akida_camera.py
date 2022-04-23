@@ -16,7 +16,9 @@ import cv2
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
 # RTSP remote webcam address (set to 0 to use local webcam)
-CAMERA_SRC = 'rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4'
+# CAMERA_SRC = "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4"
+# CAMERA_SRC = "0" # use local webcam
+CAMERA_SRC = 'rtsp://siemer.dyndns.org:8554/unicast'
 
 INFERENCE_PER_SECOND = 1
 
@@ -109,11 +111,14 @@ class Camera:
 
     def show_frame(self):
         while True:
-            frame = self.label_frame(self.stream.read())
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
+            try:
+                frame = self.label_frame(self.stream.read())
+                ret, buffer = cv2.imencode('.jpg', frame)
+                frame = buffer.tobytes()
+                yield (b'--frame\r\n'
+                        b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
+            except:
+                pass
 
     def label_frame(self, frame):
         frame = cv2.putText(
