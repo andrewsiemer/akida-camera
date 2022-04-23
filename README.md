@@ -2,6 +2,7 @@
 
 This is an extremely basic way to utilise the Akida on-chip learning functionality. The demo will let you learn new classes of objects to recognise in the camera feed. This application is built to soley demonstrate how easy it is to use Akida's unique one-shot/few shot learning abilities.
 
+![Preview](https://i.ibb.co/Nyyxpd8/Screen-Shot-2022-04-19-at-2-52-39-PM.png)
 
 ## How Does Akida Learn?
 
@@ -30,7 +31,7 @@ STDP  is  possible  because  of  the  event-based processing method used by the 
 
 1. To start the server run `python3 akida_camera.py`
 2. In the console output you should see something similar to `* Running on http://127.0.0.1:5000`, navigate to the URL in your browser to see the app
-3. To learning classes put the object in frame then type the class name and click `Add` (Be defualt, you can add up to 10 unique classes)
+3. To learning classes, put the object in frame then type the class name and click `Add` (Be default, you can add up to 10 unique classes)
 4. To kill the server use `pkill -9 python`
 
 > **Important:** Remember to contact `sales@brainchipinc.com` to seek permission before publishing any demonstration videos
