@@ -9,7 +9,6 @@ import numpy as np
 from akida_models import akidanet_edge_imagenet_pretrained
 from cnn2snn import convert
 from akida import Model, FullyConnected, devices
-
 from flask import Flask, render_template, Response, request
 import cv2
 
@@ -97,6 +96,9 @@ class Camera:
         ).start()
         self.label = ""
         self.shots = ""
+        self.stats1 = ""
+        self.stats2 = ""
+        self.stats3 = ""
         self.text_display_timer = 0
 
     def get_frame(self):
@@ -141,6 +143,36 @@ class Camera:
             1,
             cv2.LINE_AA,
         )
+        frame = cv2.putText(
+            frame,
+            str(self.stats1),
+            (5, 180),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            TEXT_COLOR,
+            1,
+            cv2.LINE_AA,
+        )
+        frame = cv2.putText(
+            frame,
+            str(self.stats2),
+            (5, 210),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            TEXT_COLOR,
+            1,
+            cv2.LINE_AA,
+        )
+        frame = cv2.putText(
+            frame,
+            str(self.stats3),
+            (5, 240),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            TEXT_COLOR,
+            1,
+            cv2.LINE_AA,
+        )
         return frame
 
 
@@ -169,6 +201,8 @@ class Inference:
         if len(devices()) > 0:
             device = devices()[0]
             self.model_ak.map(device)
+            device.soc.power_measurement_enabled = True
+            #device.soc.clock_mode = akida.soc.ClockMode.Performance
 
     def initialise(self):
 
@@ -205,6 +239,15 @@ class Inference:
                 self.camera.label = LABELS.get(predictions[0], predictions[0])
                 self.camera.shots = "{} shot/s".format(SHOTS.get(predictions[0]))
             time.sleep(1 / INFERENCE_PER_SECOND)
+
+            try:
+                stats = (str(self.model_ak.statistics).split("\n"))
+                print(stats)
+                # self.camera.stats1 = stats[0]
+                # self.camera.stats2 = stats[1]
+                # self.camera.stats3 = stats[2]
+            except:
+                pass
 
     def learn(self, neuron):
         if neuron not in SAVED:
