@@ -48,7 +48,7 @@
 <script>
     var ws = new WebSocket("ws://localhost:8000/ws");
     ws.onmessage = function(event) {
-        document.querySelector("#stats").textContent = event.data;
+        document.querySelector("#stats").innerHTML = event.data;
     };
     function sendMessage(event) {
         ws.send(event)

@@ -116,7 +116,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            await websocket.send_text(STATS)
+            await websocket.send_text(STATS.replace('\n', '</br>'))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast("Client left.")
@@ -132,6 +132,7 @@ class Camera:
     """
 
     def __init__(self):
+        print("Initializing camera")
         self.stream = VideoStream(
             src=CAMERA_SRC, resolution=(FRAME_WIDTH, FRAME_HEIGHT)
         ).start()
@@ -157,7 +158,7 @@ class Camera:
                 frame = buffer.tobytes()
                 yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
-            except:
+            except GeneratorExit:
                 pass
 
     def label_frame(self, frame):
@@ -241,6 +242,8 @@ class Inference:
 
     def infer(self):
         global STATS
+        fps = pavg = pmin = pmax = energy = 0
+
         while True:
             input_array = camera.get_input_array()
             predictions = self.model_ak.predict_classes(input_array, num_classes=NUM_CLASSES)
@@ -249,7 +252,19 @@ class Inference:
                 self.camera.label = LABELS.get(predictions[0], predictions[0])
                 self.camera.shots = "{} shot/s".format(SHOTS.get(predictions[0]))
 
-            STATS = str(self.model_ak.statistics.__dict__)
+            stats_raw = self.model_ak.statistics.__dict__
+            fps = round(stats_raw.get('_fps'))
+            powers = stats_raw.get('_powers')
+            if powers:
+                pavg = round(powers.get('Avg'))
+                pmin = powers.get('Min')
+                pmax = powers.get('Max')
+            if stats_raw.get('_energy'):
+                energy = round(stats_raw.get('_energy'))
+
+            STATS = "Average framerate = {} fps\n".format(fps) + \
+                    "Last inference power range (mW):  Avg {} / Min {} / Max {}\n".format(pavg, pmin, pmax) + \
+                    "Last inference energy consumed (mJ/frame): {}".format(energy)
 
             time.sleep(1 / INFERENCE_PER_SECOND)
 
