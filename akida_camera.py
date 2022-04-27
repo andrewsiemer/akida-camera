@@ -8,7 +8,7 @@ import numpy as np
 
 from akida_models import akidanet_edge_imagenet_pretrained
 from cnn2snn import convert
-from akida import Model, FullyConnected, devices
+from akida import Model, FullyConnected, devices, core
 import cv2
 
 from fastapi import FastAPI, Request, WebSocket, Form, Response, WebSocketDisconnect
@@ -163,7 +163,7 @@ class Camera:
                 frame = buffer.tobytes()
                 yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
-        except GeneratorExit:
+        except:
             pass
 
     def label_frame(self, frame):
@@ -216,7 +216,7 @@ class Inference:
             device = devices()[0]
             self.model_ak.map(device)
             device.soc.power_measurement_enabled = True
-            #device.soc.clock_mode = akida.soc.ClockMode.Performance
+            device.soc.clock_mode = core.soc.ClockMode.Performance
 
     def initialise(self):
 
