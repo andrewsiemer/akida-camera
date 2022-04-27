@@ -97,7 +97,7 @@ def index(request: Request):
     
     return templates.TemplateResponse('index.html', { 'request': request })
 
-@app.post("/")
+@app.post("/add")
 async def add(request: Request, label: str = Form(...)):
     # getting input with in HTML form
     if (label != ''):
@@ -151,15 +151,15 @@ class Camera:
         return input_array
 
     def show_frame(self):
-        while True:
-            try:
+        try:
+            while True:
                 frame = self.label_frame(self.stream.read())
                 ret, buffer = cv2.imencode('.jpg', frame)
                 frame = buffer.tobytes()
                 yield (b'--frame\r\n'
                         b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
-            except GeneratorExit:
-                pass
+        except GeneratorExit:
+            pass
 
     def label_frame(self, frame):
         frame = cv2.putText(
