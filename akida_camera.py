@@ -13,7 +13,8 @@ import cv2
 
 from fastapi import FastAPI, Request, WebSocket, Form, Response, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
@@ -120,6 +121,10 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast("Client left.")
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    return RedirectResponse("/")
 
 ##################################################
 # Akida Demo
