@@ -9,15 +9,18 @@ import numpy as np
 from akida_models import akidanet_edge_imagenet_pretrained
 from cnn2snn import convert
 from akida import Model, FullyConnected, devices
-from flask import Flask, render_template, Response, request
 import cv2
+
+from fastapi import FastAPI, Request, WebSocket, Form, Response, WebSocketDisconnect
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
 
 MODEL_FBZ = "models/edge_learning_example.fbz"
 
 # RTSP remote webcam address (set to 0 to use local webcam)
 # CAMERA_SRC = "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4"
 # CAMERA_SRC = "0" # use local webcam
-CAMERA_SRC = 'rtsp://siemer.dyndns.org:8554/unicast'
+CAMERA_SRC = 'rtsp://104.10.177.210:8554/unicast'
 
 INFERENCE_PER_SECOND = 1
 
@@ -36,6 +39,7 @@ TARGET_HEIGHT = 224
 LABELS = {}
 SAVED = []
 SHOTS = {}
+STATS = ""
 
 # utility function to return key for any value
 def get_key(val):
@@ -49,36 +53,73 @@ def get_key(val):
 # Web App
 ##################################################
 
-app = Flask(__name__)
+app = FastAPI() # define application
+
+# location of web service static files and html templates
+templates = Jinja2Templates(directory='templates')
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
 
 @app.route('/video_feed')
-def video_feed():
+def video_feed(request: Request):
 
     """
     Video streaming route.
     """
 
     # Put this in the src attribute of an img tag
-    return Response(camera.show_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return StreamingResponse(camera.show_frame(), media_type='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/', methods =["GET", "POST"])
-def index():
+@app.get("/")
+def index(request: Request):
 
     """
     Video streaming home page.
     """
-    if request.method == "POST":
-        # getting input with in HTML form
-        class_name = str(request.form.get("cname"))
-        if (class_name != ''):
-            if (get_key(class_name) == -1):
-                # add new class
-                LABELS.update({len(LABELS):class_name})
-            # learn class
-            inference.learn(get_key(class_name))
-            print("Learned Class: {}.".format(class_name))
     
-    return render_template('index.html')
+    return templates.TemplateResponse('index.html', { 'request': request })
+
+@app.post("/")
+async def add(request: Request, label: str = Form(...)):
+    # getting input with in HTML form
+    if (label != ''):
+        if (get_key(label) == -1):
+            # add new class
+            LABELS.update({len(LABELS):label})
+        # learn class
+        inference.learn(get_key(label))
+        print("Learned Class: {}.".format(label))
+    
+    return templates.TemplateResponse('index.html', { 'request': request })
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(STATS)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast("Client left.")
 
 ##################################################
 # Akida Demo
@@ -96,9 +137,6 @@ class Camera:
         ).start()
         self.label = ""
         self.shots = ""
-        self.stats1 = ""
-        self.stats2 = ""
-        self.stats3 = ""
         self.text_display_timer = 0
 
     def get_frame(self):
@@ -139,36 +177,6 @@ class Camera:
             (5, 50),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
-            TEXT_COLOR,
-            1,
-            cv2.LINE_AA,
-        )
-        frame = cv2.putText(
-            frame,
-            str(self.stats1),
-            (5, 180),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            TEXT_COLOR,
-            1,
-            cv2.LINE_AA,
-        )
-        frame = cv2.putText(
-            frame,
-            str(self.stats2),
-            (5, 210),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            TEXT_COLOR,
-            1,
-            cv2.LINE_AA,
-        )
-        frame = cv2.putText(
-            frame,
-            str(self.stats3),
-            (5, 240),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
             TEXT_COLOR,
             1,
             cv2.LINE_AA,
@@ -232,22 +240,18 @@ class Inference:
         model_ak.save(MODEL_FBZ)
 
     def infer(self):
+        global STATS
         while True:
             input_array = camera.get_input_array()
             predictions = self.model_ak.predict_classes(input_array, num_classes=NUM_CLASSES)
+
             if predictions[0] in SAVED:
                 self.camera.label = LABELS.get(predictions[0], predictions[0])
                 self.camera.shots = "{} shot/s".format(SHOTS.get(predictions[0]))
-            time.sleep(1 / INFERENCE_PER_SECOND)
 
-            try:
-                stats = (str(self.model_ak.statistics).split("\n"))
-                print(stats)
-                # self.camera.stats1 = stats[0]
-                # self.camera.stats2 = stats[1]
-                # self.camera.stats3 = stats[2]
-            except:
-                pass
+            STATS = str(self.model_ak.statistics.__dict__)
+
+            time.sleep(1 / INFERENCE_PER_SECOND)
 
     def learn(self, neuron):
         if neuron not in SAVED:
@@ -266,7 +270,3 @@ class Inference:
 
 camera = Camera()
 inference = Inference(camera)
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')

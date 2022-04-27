@@ -24,17 +24,36 @@
             <h3 class="mt-2">Using Brainchip's Akida SoC, Demo'd by CMU</h3>
             <p class="mt-2">18743 :: Neuromorphic Computer Architecture & Processor Design (Team 10)</p>
             <br>
-            <img src="{{ url_for('video_feed') }}" width="100%">
+            <p class="mt-2"><span id='stats'>Loading stats...</span></p>
+            <img src="/video_feed" type="video/mp4" width="100%"/>
         </div>
     </div>
+    <br>
+    <div class="row">
+        <div class="col-lg-8  offset-lg-2">
+            <center>
+                <form action="/" id="add" method="post">
+                    <label for="label">Learn Class:</label>
+                    <input type="text" id="label" name="label" placeholder="item1" autocomplete="off" />
+                    <button type="submit">Learn</button>
+                </form>
+            </center>
+        </div>
+    </div>
+
 </div>
-<br>
-<center>
-<form action="{{ url_for("index")}}" method="post">
-    <label for="class">Learn Class:</label>
-    <input type="text" id="class" name="cname" placeholder="item1">
-    <button type="submit">Add</button>
-</form>
-</center>
-<h3 class="mt-2">{{ statistics }}</h3>
 </body>
+
+<!-- Page level custom scripts -->
+<script>
+    var ws = new WebSocket("ws://localhost:8000/ws");
+    ws.onmessage = function(event) {
+        document.querySelector("#stats").textContent = event.data;
+    };
+    function sendMessage(event) {
+        ws.send(event)
+        event.preventDefault()
+    }
+    // create interval to ask for sensor updates
+    var update_interval = window.setInterval(sendMessage, 1000, 'stats-update');
+</script>

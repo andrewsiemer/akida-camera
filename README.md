@@ -29,10 +29,10 @@ STDP  is  possible  because  of  the  event-based processing method used by the 
 
 ### Running and using the app
 
-1. To start the server run `python3 akida_camera.py`
+1. To start the server run `uvicorn akida_camera:app --reload --host 0.0.0.0`
 2. In the console output you should see something similar to `* Running on http://127.0.0.1:5000`, navigate to the URL in your browser to see the app
-3. To learning classes, put the object in frame then type the class name and click `Add` (Be default, you can add up to 10 unique classes)
-4. To kill the server use `pkill -9 python`
+3. To learn class, put the object in frame then type the class name and click `Learn` (Be default, you can add up to 10 unique classes)
+4. To kill the server use `pkill -9 uvicorn`
 
 > **Important:** Remember to contact `sales@brainchipinc.com` to seek permission before publishing any demonstration videos
 
